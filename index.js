@@ -7,7 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
-import fetch from 'node-fetch';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLUGINS_DIR   = path.join(__dirname, 'plugins');
@@ -373,7 +372,19 @@ async function handleMessage(client, event) {
     }
 }
 
-// ─── Connexion WhatsApp ───────────────────────────────────────────────────────
+// ─── Connexion WhatsApp (pairing code) ───────────────────────────────────────
+
+import readline from 'readline';
+
+function askNumber() {
+    return new Promise((resolve) => {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        rl.question('\n📱 Entre ton numéro WhatsApp (ex: 242053889794) : ', (ans) => {
+            rl.close();
+            resolve(ans.trim().replace(/[^0-9]/g, ''));
+        });
+    });
+}
 
 async function startBot() {
     await pluginManager.loadAll();
@@ -396,16 +407,42 @@ async function startBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
-        if (qr) {
-            console.log('\n📱 SCANNE LE QR CODE CI-DESSUS AVEC WHATSAPP\n');
-            const qrcode = (await import('qrcode-terminal')).default;
-            qrcode.generate(qr, { small: true });
+    let codeSent = false;
+
+    sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
+
+        // ── Demander le code de pairing dès la connexion ──
+        if (connection === 'connecting' && !codeSent && !sock.authState.creds.registered) {
+            codeSent = true;
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                let number = loadConfig().owner;
+                if (!number) number = await askNumber();
+                number = number.replace(/[^0-9]/g, '');
+
+                const code = await sock.requestPairingCode(number);
+                const fmt  = code.match(/.{1,4}/g)?.join('-') || code;
+
+                console.log(`\n╭┄─̣✦┄─̣✦┄─̣✦┄─̣✦`);
+                console.log(`│ ⊹ AKANE MD v2 ⊹`);
+                console.log(`│┄─̣┄─̣┄─̣┄─̣┄─̣`);
+                console.log(`│ 🔑 NUMÉRO : +${number}`);
+                console.log(`│ 🔐 CODE   : ${fmt}`);
+                console.log(`│ ⚠️  EXPIRE DANS : 60s`);
+                console.log(`╰┄─̣✦┄─̣✦┄─̣✦┄─̣✦`);
+                console.log(`\n👉 Va dans WhatsApp → Appareils connectés → Connecter → Entre le code\n`);
+            } catch (err) {
+                console.error('❌ Erreur pairing code :', err.message);
+                process.exit(1);
+            }
         }
 
         if (connection === 'open') {
             console.log('✅ AKANE MD v2 connecté !');
             const number = sock.user.id.split(':')[0];
+            // Sauvegarder le numéro comme owner si pas encore défini
+            const cfg = loadConfig();
+            if (!cfg.owner) { cfg.owner = number; saveConfig(cfg); }
             try {
                 await sock.sendMessage(`${number}@s.whatsapp.net`, {
                     text: box(
@@ -437,4 +474,3 @@ async function startBot() {
 }
 
 startBot();
-  
