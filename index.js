@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLUGINS_DIR   = path.join(__dirname, 'plugins');
 const PLUGINS_FILE  = path.join(__dirname, 'database', 'plugins.json');
 const CONFIG_FILE   = path.join(__dirname, 'database', 'config.json');
-const CHANNEL_LINK  = 'https://whatsapp.com/channel/0029VbCrJRnGufIyytPXy606';
+const CHANNEL_LINK  = 'https://whatsapp.com/channel/0029Vb8JcmVEVccLHB0tUY2D';
 
 if (!fs.existsSync(PLUGINS_DIR))  fs.mkdirSync(PLUGINS_DIR, { recursive: true });
 if (!fs.existsSync(path.join(__dirname, 'database'))) fs.mkdirSync(path.join(__dirname, 'database'), { recursive: true });
@@ -156,7 +156,7 @@ async function handleCoreCommand(client, message, command, args, config) {
             if (sub === 'add') {
                 const url = args[1];
                 if (!url) return client.sendMessage(sender, {
-                    text: box(`│ *📦 INSTALLER UN PLUGIN*`, `│`, `│ *Usage : ${config.prefix}plugin add [URL]*`, `│`, `│ *Exemple :*`, `│ *${config.prefix}plugin add https://akane-plugins.vercel.app/p/sticker.js*`),
+                    text: box(`│ *📦 INSTALLER UN PLUGIN*`, `│`, `│ *Usage : ${config.prefix}plugin add [URL]*`, `│`, `│ *Exemple :*`, `│ *${config.prefix}plugin add https://akane-store-nine.vercel.app/p/sticker.js*`),
                     nativeFlow: S.chan
                 }, { quoted: message });
 
@@ -270,7 +270,7 @@ async function handleCoreCommand(client, message, command, args, config) {
             }
 
             lines.push(`│ *🌐 SITE PLUGINS :*`);
-            lines.push(`│ akane-plugins.vercel.app`);
+            lines.push(`│ akane-store-nine.vercel.app`);
             lines.push(S.bot + S.foot);
 
             return client.sendMessage(sender, { text: lines.join('\n'), nativeFlow: S.chan });
@@ -450,7 +450,7 @@ async function startBot() {
                         `│ *📦 Plugins chargés : ${pluginManager.plugins.size}*`,
                         `│ *⚙️ Préfixe : ${loadConfig().prefix}*`,
                         `│`,
-                        `│ *🌐 Site plugins : akane-plugins.vercel.app*`,
+                        `│ *🌐 Site plugins : akane-store-nine.vercel.app*`,
                     ),
                     nativeFlow: S.chan
                 });
