@@ -239,41 +239,71 @@ async function handleCoreCommand(client, message, command, args, config) {
         // ── menu ──
         case 'menu':
         case 'help': {
-            const list   = pluginManager.list();
-            const pfx    = config.prefix;
+            const list  = pluginManager.list();
+            const pfx   = config.prefix;
+            const uptime = process.uptime();
+            const days  = Math.floor(uptime / 86400);
+            const hours = Math.floor((uptime % 86400) / 3600);
+            const mins  = Math.floor((uptime % 3600) / 60);
+            const secs  = Math.floor(uptime % 60);
+            const uptimeStr = `${days}𝗝:${hours}𝗛:${mins}𝗠:${secs}𝗦`;
+            const now   = new Date();
+            const dateStr = `${now.getDate().toString().padStart(2,'0')} ${['JAN','FÉV','MAR','AVR','MAI','JUI','JUI','AOÛ','SEP','OCT','NOV','DÉC'][now.getMonth()]} ${now.getFullYear()}`;
 
-            let lines = [
-                S.top, S.title, S.mid,
-                `│ *🤖 AKANE MD v2*`,
-                `│ *📡 MODE : ${config.publicMode ? '🌍 PUBLIC' : '🔒 PRIVÉ'}*`,
-                `│ *⚙️ PRÉFIXE : ${pfx}*`,
-                `│`,
-                `│ *📦 COMMANDES CORE*`,
-                `│ ⚡ ${pfx}menu — Afficher le menu`,
-                `│ ⚡ ${pfx}plugin add [url] — Installer plugin`,
-                `│ ⚡ ${pfx}plugin remove [nom] — Supprimer`,
-                `│ ⚡ ${pfx}plugin list — Lister les plugins`,
-                `│ ⚡ ${pfx}plugin reload — Recharger`,
-                `│ ⚡ ${pfx}setprefix [x] — Changer préfixe`,
-                `│ ⚡ ${pfx}public / ${pfx}private — Mode`,
-                `│ ⚡ ${pfx}ping — Latence`,
-                `│`,
-            ];
-
-            if (list.length > 0) {
-                lines.push(`│ *🧩 PLUGINS (${list.length})*`);
-                list.forEach(p => {
-                    lines.push(`│ *• ${p.name}*`);
-                    lines.push(`│   ${p.commands.map(c => pfx + c).join(' • ')}`);
-                });
-                lines.push(`│`);
+            // Grouper plugins par catégorie
+            const bycat = {};
+            for (const p of list) {
+                if (!p.enabled) continue;
+                const cat = p.category || 'general';
+                if (!bycat[cat]) bycat[cat] = [];
+                bycat[cat].push(p);
             }
 
-            lines.push(`│ *🌐 SITE PLUGINS :*`);
-            lines.push(`│ akane-store-nine.vercel.app`);
-            lines.push(S.bot + S.foot);
+            const catLabel = { tools:'𝘁𝗼𝗼𝗹𝘀-𝗶𝗮🔧', fun:'𝗳𝘂𝗻🎉', media:'𝗺𝗲𝗱𝗶𝗮📁', general:'𝗴𝗲𝗻𝗲𝗿𝗮𝗹📦', admin:'𝗮𝗱𝗺𝗶𝗻⚙️', games:'𝗴𝗮𝗺𝗲𝘀🎮' };
 
-            return client.sendMessage(sender, { text: lines.join('\n'), nativeFlow: S.chan });
+            let caption = '';
+
+            // ── BOT INFO ──
+            caption += `╭┄─̣✦┄─̣✦┄─̣✦┄─̣✦┄─̣✦\n`;
+            caption += `*│𝐀𝐊𝐀𝐍𝐄-𝐌𝐃 𝐕𝟐*\n\n`;
+            caption += `*│𝐁𝐎𝐓-𝐈𝐍𝐅𝐎*\n\n`;
+            caption += `*│𝐖𝐄𝐁 :* https://akane-store-nine.vercel.app/\n\n`;
+            caption += `*│𝐕𝐄𝐑𝐒𝐈𝐎𝐍 :* *\`𝟐.𝟎.𝟎\`*\n\n`;
+            caption += `*│𝐃𝐄𝐕 :* _\`𝗮𝗸𝗮𝗻𝗲 𝗫 𝘀𝗼𝗿𝗮\`_\n\n`;
+            caption += `*│𝐔𝐏𝐓𝐈𝐌𝐄 :* \`${uptimeStr}\`\n\n`;
+            caption += `*│𝐏𝐑𝐄𝐅𝐈𝐗𝐄 :* \`(${pfx})\`\n\n`;
+            caption += `*│𝐃𝐀𝐓𝐄 :* \`${dateStr}\`\n`;
+            caption += `╰┄─̣✦┄─̣✦┄─̣✦┄─̣✦┄─̣✦\n\n`;
+
+            // ── BOT-MENU (core) ──
+            caption += `╭┄─̣✦(𝗯𝗼𝘁-𝗺𝗲𝗻𝘂🤖)\n\n`;
+            caption += `> *_𝗽𝗹𝘂𝗴𝗶𝗻_*\n`;
+            caption += `> *_𝗺𝗼𝗱𝗲_*\n`;
+            caption += `> *_𝘂𝗽𝘁𝗶𝗺𝗲_*\n`;
+            caption += `> *_𝗽𝗶𝗻𝗴_*\n`;
+            caption += `> *_𝘀𝘂𝗱𝗼_*\n`;
+            caption += `> *_𝗱𝗲𝗹𝘀𝘂𝗱𝗼_*\n\n`;
+            caption += `╰┄─̣✦┄─̣✦┄─̣✦┄\n\n`;
+
+            // ── Catégories plugins ──
+            for (const [cat, plugins] of Object.entries(bycat)) {
+                const label = catLabel[cat] || `${cat}📦`;
+                caption += `╭┄─̣✦(${label})\n\n`;
+                for (const p of plugins) {
+                    for (const cmd of p.commands) {
+                        caption += `> *_${cmd}_*\n`;
+                    }
+                }
+                caption += `\n╰┄─̣✦┄─̣✦┄─̣✦┄\n\n`;
+            }
+
+            caption += `> *© AKANE MD v2 🌹*`;
+
+            return client.sendMessage(sender, {
+                image: { url: 'https://cdn.crysnovax.link/files/1781566333440-712f9269-603b-4913-a265-73c35aa122ed.jpg' },
+                caption,
+                nativeFlow: S.chan
+            });
         }
 
         case 'ping': {
