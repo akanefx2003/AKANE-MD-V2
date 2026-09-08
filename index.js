@@ -1,7 +1,7 @@
 // AKANE MD v2 — Bot WhatsApp avec système de plugins dynamiques
 // Usage: node index.js
 
-import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, Browsers } from '@crysnovax/baileys';
+import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, Browsers } from 'baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
