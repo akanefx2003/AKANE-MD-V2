@@ -64,6 +64,15 @@ async function _deleteTriggerMessage(client, chat, key) {
     try { await client.sendMessage(chat, { delete: key }); } catch {}
 }
 
+// Cherche une cible (mention ou réponse) dans le message de COMMANDE lui-même,
+// utilisé par .antilink reset @membre.
+function _getCommandTarget(message) {
+    const ctx = message.message?.extendedTextMessage?.contextInfo || {};
+    if (ctx.mentionedJid?.[0]) return ctx.mentionedJid[0];
+    if (ctx.participant) return ctx.participant;
+    return null;
+}
+
 function _getRawText(message) {
     return message.message?.conversation
         || message.message?.extendedTextMessage?.text
@@ -200,6 +209,30 @@ export default {
             return client.sendMessage(chat, { text: box(`│ *✅ ANTILINK DÉSACTIVÉ*`) });
         }
 
+        // ── Effacer le casier d'avertissements de quelqu'un ────────────────
+        if (sub === 'reset' || sub === 'clear') {
+            const target = _getCommandTarget(message);
+            if (!target) {
+                return client.sendMessage(chat, {
+                    text: box(
+                        `│ *❌ CIBLE MANQUANTE*`, `│`,
+                        `│ *Mentionne la personne ou réponds à son message*`, `│`,
+                        `│ *${config?.prefix || '.'}antilink reset @membre*`
+                    )
+                }, { quoted: message });
+            }
+
+            const targetNum = _num(target);
+            const trackKey  = chat + ':' + targetNum;
+            _warnCount.delete(trackKey);
+            _recentlyKicked.delete(trackKey);
+
+            return client.sendMessage(chat, {
+                text: box(`│ *🧹 CASIER EFFACÉ POUR @${targetNum}*`),
+                mentions: [target]
+            }, { quoted: message });
+        }
+
         const mode = db.groups[chat] || 'off';
         return client.sendMessage(chat, {
             text: box(
@@ -208,7 +241,8 @@ export default {
                 `│ *Usage :*`,
                 `│ *${config?.prefix || '.'}antilink on* — avertit avant kick`,
                 `│ *${config?.prefix || '.'}antilink kick* — expulse direct`,
-                `│ *${config?.prefix || '.'}antilink off* — désactive`
+                `│ *${config?.prefix || '.'}antilink off* — désactive`,
+                `│ *${config?.prefix || '.'}antilink reset @mbr* — efface son casier`
             )
         }, { quoted: message });
     }
