@@ -33,17 +33,20 @@ function _getRawText(message) {
 // tagall ou hidetag), en relisant le texte brut du message. Si jamais la
 // détection échoue pour une raison quelconque, on retombe sur 'kick'.
 function _detectCommand(message, prefix, commands) {
+    const list = Array.isArray(commands) ? commands : COMMANDS;
     const text = _getRawText(message).trim();
-    if (!text.startsWith(prefix)) return commands[0];
+    if (!text.startsWith(prefix)) return list[0];
     const first = text.slice(prefix.length).trim().split(/\s+/)[0]?.toLowerCase() || '';
-    return commands.includes(first) ? first : commands[0];
+    return list.includes(first) ? first : list[0];
 }
+
+const COMMANDS = ['kick', 'kickall', 'tagall', 'hidetag'];
 
 export default {
     name: 'kick',
-    version: '2.0.0',
+    version: '2.0.1',
     description: "Expulsion (kick/kickall) et mentions de groupe (tagall/hidetag)",
-    commands: ['kick', 'kickall', 'tagall', 'hidetag'],
+    commands: COMMANDS,
     category: 'groupe',
     usage: '.kick @membre | .kickall confirm | .tagall [message] | .hidetag [message]',
     tips: [
@@ -67,7 +70,7 @@ export default {
         }
 
         const prefix = config?.prefix || '.';
-        const cmd    = _detectCommand(message, prefix, this.commands);
+        const cmd    = _detectCommand(message, prefix, COMMANDS);
 
         let meta;
         try { meta = await client.groupMetadata(chat); } catch {
