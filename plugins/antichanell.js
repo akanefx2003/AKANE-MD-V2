@@ -66,6 +66,15 @@ async function _deleteTriggerMessage(client, chat, key) {
 // (newsletter/channel), pas un simple "transféré" entre utilisateurs.
 // NB : le nom exact du champ peut varier selon la version de Baileys —
 // on vérifie plusieurs noms connus pour rester robuste.
+// Cherche une cible (mention ou réponse) dans le message de COMMANDE lui-même,
+// utilisé par .antichannel reset @membre.
+function _getCommandTarget(message) {
+    const ctx = message.message?.extendedTextMessage?.contextInfo || {};
+    if (ctx.mentionedJid?.[0]) return ctx.mentionedJid[0];
+    if (ctx.participant) return ctx.participant;
+    return null;
+}
+
 function _isChannelForward(ctx) {
     if (!ctx) return false;
     const hasNewsletterInfo = Boolean(
@@ -213,6 +222,30 @@ export default {
             return client.sendMessage(chat, { text: box(`│ *✅ ANTICHANNEL DÉSACTIVÉ*`) });
         }
 
+        // ── Effacer le casier d'avertissements de quelqu'un ────────────────
+        if (sub === 'reset' || sub === 'clear') {
+            const target = _getCommandTarget(message);
+            if (!target) {
+                return client.sendMessage(chat, {
+                    text: box(
+                        `│ *❌ CIBLE MANQUANTE*`, `│`,
+                        `│ *Mentionne la personne ou réponds à son message*`, `│`,
+                        `│ *${config?.prefix || '.'}antichannel reset @membre*`
+                    )
+                }, { quoted: message });
+            }
+
+            const targetNum = _num(target);
+            const trackKey  = chat + ':' + targetNum;
+            _warnCount.delete(trackKey);
+            _recentlyKicked.delete(trackKey);
+
+            return client.sendMessage(chat, {
+                text: box(`│ *🧹 CASIER EFFACÉ POUR @${targetNum}*`),
+                mentions: [target]
+            }, { quoted: message });
+        }
+
         const mode = db.groups[chat] || 'off';
         return client.sendMessage(chat, {
             text: box(
@@ -221,7 +254,8 @@ export default {
                 `│ *Usage :*`,
                 `│ *${config?.prefix || '.'}antichannel on* — avertit avant kick`,
                 `│ *${config?.prefix || '.'}antichannel kick* — expulse direct`,
-                `│ *${config?.prefix || '.'}antichannel off* — désactive`
+                `│ *${config?.prefix || '.'}antichannel off* — désactive`,
+                `│ *${config?.prefix || '.'}antichannel reset @mbr* — efface son casier`
             )
         }, { quoted: message });
     }
