@@ -8,19 +8,9 @@ export default {
 
     async handler(client, message, args, { box, S }) {
         const jid = message.key.remoteJid;
-        return client.sendMessage(jid, {
-            text: box(
-                `╭┄─̣✦ *🏎️ HIGHWAY CAR RACER* ✦─̣┄`,
-                `│`,
-                `│ *Jeu Canvas Interactif disponible !*`,
-                `│ Joue au mini-jeu de course directement.`,
-                `│`,
-                `╰┄─̣✦ *© AKANE MD v2 🌹*`
-            )
-        }, { quoted: message });
-    },
 
-    html: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>
+        // Code HTML/Canvas du jeu Turbo Highway
+        const gameHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif;overscroll-behavior:none;padding:0}
 body{padding:8px;background:radial-gradient(circle at 50% 12%,#4a154b,#110419 60%,#05000a)}
 .machine{position:relative;overflow:hidden;padding:12px;border:3px solid #360d3d;border-radius:22px;background:linear-gradient(105deg,#15021f,#501366 8%,#230530 20%,#460e59 52%,#1b0324 82%,#6a1c87 94%,#0f0117);box-shadow:inset 0 0 0 2px #ff4081,inset 0 0 0 6px #240530,inset 0 20px 35px #00e5ff22,0 8px 0 #15021f,0 14px 24px #000c;touch-action:none}
@@ -139,5 +129,23 @@ if(alive){drawCar(player.x,player.y,"#00e5ff",true)}
 }
 function loop(){update();draw();requestAnimationFrame(loop)}
 size();reset();loop();
-})()</script></body></html>`
+})()</script></body></html>`;
+
+        // Conversion du jeu HTML en URL de données (compatible mobile)
+        const gameUrl = `data:text/html;charset=utf-8,${encodeURIComponent(gameHtml)}`;
+
+        // Envoi du message interactif avec le bouton WebApp pour ouvrir le Canvas
+        return client.sendMessage(jid, {
+            text: box(
+                `╭┄─̣✦ *🏎️ HIGHWAY CAR RACER* ✦─̣┄`,
+                `│`,
+                `│ 🕹️ *Ecran de jeu Canvas généré !*`,
+                `│ Cliquez sur le lien ci-dessous pour ouvrir l'écran interactif :`,
+                `│`,
+                `│ 🔗 ${gameUrl}`,
+                `│`,
+                `╰┄─̣✦ *© AKANE MD v2 🌹*`
+            )
+        }, { quoted: message });
+    }
 };
