@@ -1,13 +1,13 @@
 // plugins/kick.js
 // Commandes de groupe (Baileys simple — aucun bouton / nativeFlow) :
-// left, promote
+// bye, nommer
 //
 // Usage :
-//   {prefix}left             -> le bot quitte le groupe immédiatement
-//   {prefix}promote @membre  -> nomme admin
+//   {prefix}bye              -> le bot quitte le groupe immédiatement
+//   {prefix}nommer @membre   -> nomme admin
 //
-// - En mode public (config.public === true) : réservées aux admins du groupe.
-// - En mode privé (config.public === false)  : aucune restriction, tout le
+// - En mode public (config.publicMode === true) : réservées aux admins du groupe.
+// - En mode privé (config.publicMode === false)  : aucune restriction, tout le
 //   monde peut les utiliser (y compris quelqu'un d'autre que le propriétaire).
 
 const _num = (jid) => (jid || '').split('@')[0].split(':')[0].replace(/\D/g, '');
@@ -32,7 +32,7 @@ function _getRawText(message) {
 }
 
 // Détecte quelle commande a réellement déclenché le handler, en relisant le
-// texte brut du message. Si la détection échoue, on retombe sur 'left'.
+// texte brut du message. Si la détection échoue, on retombe sur 'bye'.
 function _detectCommand(message, prefix, commands) {
     const list = Array.isArray(commands) ? commands : COMMANDS;
     const text = _getRawText(message).trim();
@@ -55,18 +55,18 @@ function _getTargets(message) {
     return [...targets];
 }
 
-const COMMANDS = ['left', 'promote'];
+const COMMANDS = ['bye', 'nommer'];
 
 export default {
     name: 'kick',
-    version: '5.0.0',
-    description: "Gestion de groupe : left, promote",
+    version: '6.0.0',
+    description: "Gestion de groupe : bye, nommer",
     commands: COMMANDS,
     category: 'groupe',
-    usage: '.left | .promote @membre',
+    usage: '.bye | .nommer @membre',
     tips: [
-        '.left fait quitter le bot du groupe immédiatement',
-        '.promote @membre le nomme admin',
+        '.bye fait quitter le bot du groupe immédiatement',
+        '.nommer @membre le nomme admin',
         'Mode public : réservé aux admins du groupe',
         'Mode privé : ouvert à tout le monde'
     ],
@@ -107,28 +107,28 @@ export default {
 
         // ── Mode public : réservé aux admins du groupe ──────────────────────
         // ── Mode privé : aucune restriction, tout le monde peut l'utiliser ──
-        if (config?.public && !requesterIsAdmin) {
+        if (config?.publicMode && !requesterIsAdmin) {
             return client.sendMessage(chat, {
                 text: box(`│ *❌ COMMANDE RÉSERVÉE AUX ADMINS*`)
             }, { quoted: message });
         }
 
-        // ═══════════════════════════════ LEFT ═══════════════════════════════
+        // ═══════════════════════════════ BYE ═══════════════════════════════
         // Aucune confirmation : le bot quitte immédiatement.
-        if (cmd === 'left') {
+        if (cmd === 'bye') {
             await client.sendMessage(chat, { text: box(`│ *👋 À BIENTÔT !*`) });
             try { await client.groupLeave(chat); } catch {}
             return;
         }
 
-        // ══════════════════════════════ PROMOTE ══════════════════════════════
-        if (cmd === 'promote') {
+        // ══════════════════════════════ NOMMER ══════════════════════════════
+        if (cmd === 'nommer') {
             const targets = _getTargets(message);
 
             if (targets.length === 0) {
                 return client.sendMessage(chat, {
                     text: box(
-                        `│ *⭐ PROMOTE*`, `│`,
+                        `│ *⭐ NOMMER*`, `│`,
                         `│ *Mentionne la personne ou réponds à son message*`
                     )
                 }, { quoted: message });
