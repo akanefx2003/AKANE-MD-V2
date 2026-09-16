@@ -1,10 +1,11 @@
 // AKANE MD v2 — Bot WhatsApp avec système de plugins dynamiques
 // Usage: node index.js
 
-import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, Browsers } from 'baileys';
+import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, Browsers } from '@crysnovax/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 
@@ -14,6 +15,40 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // via la variable d'environnement du même nom). Si absent (lancement solo en local),
 // on retombe sur __dirname comme avant — rétrocompatible.
 const INSTANCE_DIR = process.env.INSTANCE_DIR ? path.resolve(process.env.INSTANCE_DIR) : __dirname;
+
+// ─── Session pré-générée par le site (SESSION_ID) ────────────────────────────
+// Si SESSION_ID est défini (variable d'environnement, format "AKANE~...") et
+// qu'aucune session locale n'existe déjà, on décode les creds et on les écrit
+// directement dans sessions/main/creds.json AVANT que useMultiFileAuthState()
+// ne soit appelé dans startBot(). Résultat : sock.authState.creds.registered
+// est déjà true au démarrage, donc la branche de pairing par numéro plus bas
+// ne se déclenche jamais — plus besoin de OWNER_NUMBER ni de taper un numéro.
+function decodeSessionId(sessionId) {
+    const raw = Buffer.from(sessionId.slice('AKANE~'.length), 'base64');
+    try {
+        return JSON.parse(zlib.gunzipSync(raw).toString('utf-8'));
+    } catch (e) {
+        return JSON.parse(raw.toString('utf-8')); // ancien format non compressé
+    }
+}
+function bootstrapSessionFromEnv() {
+    const sessionId = process.env.SESSION_ID;
+    if (!sessionId || !sessionId.startsWith('AKANE~')) return;
+
+    const authDir  = path.join(INSTANCE_DIR, 'sessions', 'main');
+    const credsPath = path.join(authDir, 'creds.json');
+    if (fs.existsSync(credsPath)) return; // une session locale existe déjà, on ne l'écrase pas
+
+    try {
+        const creds = decodeSessionId(sessionId);
+        fs.mkdirSync(authDir, { recursive: true });
+        fs.writeFileSync(credsPath, JSON.stringify(creds, null, 2));
+        console.log('🔑 Session restaurée depuis SESSION_ID — pas de code de pairing nécessaire.');
+    } catch (e) {
+        console.error('❌ SESSION_ID invalide/corrompu, retour au pairing par numéro :', e.message);
+    }
+}
+bootstrapSessionFromEnv();
 
 const PLUGINS_DIR   = path.join(__dirname, 'plugins');                    // partagé entre tous les numéros (même code)
 const PLUGINS_FILE  = path.join(__dirname, 'database', 'plugins.json');   // registre des plugins installés, partagé
@@ -570,6 +605,20 @@ async function startBot() {
             // Sauvegarder le numéro comme owner si pas encore défini
             const cfg = loadConfig();
             if (!cfg.owner) { cfg.owner = number; saveConfig(cfg); }
+
+            try {
+                await sock.sendMessage(`${number}@s.whatsapp.net`, {
+                    text: box(
+                        `│ *✅ AKANE MD v2 CONNECTÉ*`, `│`,
+                        `│ *👤 Numéro :* +${number}`,
+                        `│ *⚙️ Préfixe :* ${cfg.prefix}`,
+                        `│ *🌹 Réaction :* ${cfg.reaction}`
+                    ),
+                    nativeFlow: S.chan
+                });
+            } catch (err) {
+                console.error('❌ Erreur message de bienvenue :', err.message);
+            }
         }
 
         if (connection === 'close') {
